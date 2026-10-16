@@ -21,9 +21,6 @@ jobs:
           - edition: neoforge-1.21.1
             label: 1.21.1 NeoForge
             java: '21'
-          - edition: client-1.20.1
-            label: 1.20.1 Forge client
-            java: '17'
           - edition: client-26.1.2
             label: 26.1.2 NeoForge client
             java: '25'
@@ -85,12 +82,6 @@ jobs:
           name: release-neoforge-1.21.1
           path: stage/neoforge-1.21.1
 
-      - name: Download 1.20.1 client release
-        uses: actions/download-artifact@v7
-        with:
-          name: release-client-1.20.1
-          path: stage/client-1.20.1
-
       - name: Download 26.1.2 client release
         uses: actions/download-artifact@v7
         with:
@@ -103,8 +94,8 @@ jobs:
           set -euo pipefail
           mkdir -p release
           mapfile -t jars < <(find stage -type f -name '*.jar' -print | sort)
-          if (( ${#jars[@]} != 3 )); then
-            printf 'Expected 3 release JARs, found %d:\n' "${#jars[@]}" >&2
+          if (( ${#jars[@]} != 2 )); then
+            printf 'Expected 2 release JARs, found %d:\n' "${#jars[@]}" >&2
             printf '  %s\n' "${jars[@]}" >&2
             exit 1
           fi
