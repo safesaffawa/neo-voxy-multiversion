@@ -30,10 +30,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up JDK ${{ matrix.java }}
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: ${{ matrix.java }}
@@ -41,7 +41,6 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
         with:
-          cache-provider: basic
           cache-read-only: true
 
       - name: Keep JDK internal-API notices out of annotations
@@ -67,11 +66,12 @@ jobs:
           fi
           mv "${jars[0]}" "stage/$EDITION/"
 
-      - name: Pass release to bundle job
-        uses: actions/cache/save@v5
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v7
         with:
+          name: release-${{ matrix.edition }}
           path: stage/${{ matrix.edition }}
-          key: multiversion-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.edition }}
+          if-no-files-found: error
 
   bundle:
     name: Collect multiversion bundle
@@ -79,26 +79,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Restore 1.21.1 release
-        uses: actions/cache/restore@v5
+      - name: Download 1.21.1 release
+        uses: actions/download-artifact@v7
         with:
+          name: release-neoforge-1.21.1
           path: stage/neoforge-1.21.1
-          key: multiversion-${{ github.run_id }}-${{ github.run_attempt }}-neoforge-1.21.1
-          fail-on-cache-miss: true
 
-      - name: Restore 1.20.1 client release
-        uses: actions/cache/restore@v5
+      - name: Download 1.20.1 client release
+        uses: actions/download-artifact@v7
         with:
+          name: release-client-1.20.1
           path: stage/client-1.20.1
-          key: multiversion-${{ github.run_id }}-${{ github.run_attempt }}-client-1.20.1
-          fail-on-cache-miss: true
 
-      - name: Restore 26.1.2 client release
-        uses: actions/cache/restore@v5
+      - name: Download 26.1.2 client release
+        uses: actions/download-artifact@v7
         with:
+          name: release-client-26.1.2
           path: stage/client-26.1.2
-          key: multiversion-${{ github.run_id }}-${{ github.run_attempt }}-client-26.1.2
-          fail-on-cache-miss: true
 
       - name: Verify release set
         shell: bash
@@ -112,12 +109,14 @@ jobs:
             exit 1
           fi
           cp "${jars[@]}" release/
-          sha256sum release/*.jar
+          sha256sum release/*.jar | tee release/SHA256SUMS
 
       - name: Upload multiversion bundle
         uses: actions/upload-artifact@v7
         with:
           name: neo-voxy-multiversion
-          path: release/*.jar
+          path: |
+            release/*.jar
+            release/SHA256SUMS
           if-no-files-found: error
           compression-level: 0
